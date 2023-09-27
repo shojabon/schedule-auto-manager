@@ -2,8 +2,8 @@ import json
 
 from pymongo import MongoClient
 
-from ScheduleAutoManager.data_class.GoogleCalendarManager import GoogleCalendarManager
-from ScheduleAutoManager.data_class.NotionManager import NotionManager
+from ScheduleAutoManager.manager.GoogleCalendarManager import GoogleCalendarManager
+from ScheduleAutoManager.manager.NotionManager import NotionManager
 
 
 class ScheduleAutoManager:
