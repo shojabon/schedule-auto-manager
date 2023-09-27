@@ -13,7 +13,7 @@ class NotionManager:
         self.notion = Client(auth=main.config["notion"]["apiKey"])
         self.database_id = main.config["notion"]["databaseId"]
 
-        self.update_database()
+        # self.update_database()
 
     def update_database(self, start_from: str = None, page_size: int = 10):
         query_result = self.notion.databases.query(
