@@ -31,3 +31,18 @@ class FlexTask:
         if self.get_date_data()["end"] is None:
             return self.get_start_date()
         return datetime.datetime.fromisoformat(self.get_date_data()["end"])
+
+    def get_zones(self) -> list[str]:
+        zones = []
+        for zone in self.data["properties"]["タスクゾーン"]["multi_select"]:
+            zones.append(zone["name"])
+        return zones
+
+    def get_duration(self):
+        duration = self.data["properties"]["タスク時間"]["number"]
+        if duration is None:
+            return 60
+        return duration
+
+    def get_status(self):
+        return self.data["properties"]["ステータス"]["status"]["name"]

@@ -9,7 +9,7 @@ from ScheduleAutoManager.manager.NotionManager import NotionManager
 class ScheduleAutoManager:
 
     def __init__(self):
-        config_file = open("config/config.json")
+        config_file = open("config/config.json", encoding="utf-8")
         self.config = json.loads(config_file.read())
         config_file.close()
 

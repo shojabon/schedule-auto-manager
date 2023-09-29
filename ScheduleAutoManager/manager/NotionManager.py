@@ -19,7 +19,29 @@ class NotionManager:
 
         self.update_database()
 
-        print(self.get_task("0610ea52-d1b6-409f-8589-0812d9c77d95").get_date())
+        task = self.get_task("0610ea52-d1b6-409f-8589-0812d9c77d95")
+        keys = task.data["properties"].keys()
+        print(task.data["properties"]["ステータス"]["status"]["name"])
+        print(task.get_name())
+        for x in keys:
+            print(x)
+
+    def upsert_data(self, task_id: str, new_data: dict):
+        task = self.get_task(task_id)
+        comparing_old = {}
+        for key in self.main.config["notion"]["checkingFields"]:
+            comparing_old[key] = task.data["properties"][key]
+
+        comparing_new = {}
+        for key in self.main.config["notion"]["checkingFields"]:
+            comparing_new[key] = new_data["properties"][key]
+
+        if comparing_old == comparing_new:
+            return False
+
+        self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data})
+        del self.task_cache[task_id]
+        return True
 
     def update_database(self, start_from: str = None, page_size: int = 10):
         query_result = self.notion.databases.query(
@@ -39,16 +61,7 @@ class NotionManager:
         updated_tasks = []
         last_task = None
         for task in results:
-            # upsert to mongodb
-            mongo_push_result = self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task["id"]},
-                                                                                                  {"$set": task},
-                                                                                                  upsert=True).raw_result
-            if mongo_push_result["nModified"] == 1 or "upserted" in mongo_push_result:
-                updated_tasks.append(True)
-                if task["id"] in self.task_cache:
-                    del self.task_cache[task["id"]]
-            else:
-                updated_tasks.append(False)
+            updated_tasks.append(self.upsert_data(task["id"], task))
             last_task = task
 
         print(updated_tasks)
