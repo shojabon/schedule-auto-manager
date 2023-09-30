@@ -44,5 +44,11 @@ class FlexTask:
             return 60
         return duration
 
+    def get_insurance_rate(self):
+        rate = self.data["properties"]["保険率"]["number"]
+        if rate is None:
+            return 0.7
+        return rate
+
     def get_status(self):
         return self.data["properties"]["ステータス"]["status"]["name"]

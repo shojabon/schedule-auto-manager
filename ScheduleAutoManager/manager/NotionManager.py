@@ -21,22 +21,28 @@ class NotionManager:
 
         task = self.get_task("0610ea52-d1b6-409f-8589-0812d9c77d95")
         keys = task.data["properties"].keys()
-        print(task.data["properties"]["ステータス"]["status"]["name"])
-        print(task.get_name())
+        print(task.get_name(), task.get_insurance_rate())
         for x in keys:
             print(x)
 
     def upsert_data(self, task_id: str, new_data: dict):
         task = self.get_task(task_id)
         comparing_old = {}
+        force_update = False
         for key in self.main.config["notion"]["checkingFields"]:
+            if key not in task.data["properties"]:
+                force_update = True
+                continue
             comparing_old[key] = task.data["properties"][key]
 
         comparing_new = {}
         for key in self.main.config["notion"]["checkingFields"]:
+            if key not in new_data["properties"]:
+                force_update = True
+                continue
             comparing_new[key] = new_data["properties"][key]
 
-        if comparing_old == comparing_new:
+        if comparing_old == comparing_new and not force_update:
             return False
 
         self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data})
