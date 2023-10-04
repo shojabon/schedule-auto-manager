@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import datetime
 from typing import TYPE_CHECKING
 from notion_client import Client
 
@@ -17,20 +19,14 @@ class NotionManager:
 
         self.task_cache = {}
 
-        self.update_database()
-
-        task = self.get_task("0610ea52-d1b6-409f-8589-0812d9c77d95")
-        keys = task.data["properties"].keys()
-        print(task.get_name(), task.get_insurance_rate())
-        for x in keys:
-            print(x)
+        # self.update_database()
 
     def upsert_data(self, task_id: str, new_data: dict):
         task = self.get_task(task_id)
         comparing_old = {}
         force_update = False
         for key in self.main.config["notion"]["checkingFields"]:
-            if key not in task.data["properties"]:
+            if task is None or key not in task.data["properties"]:
                 force_update = True
                 continue
             comparing_old[key] = task.data["properties"][key]
@@ -42,11 +38,12 @@ class NotionManager:
                 continue
             comparing_new[key] = new_data["properties"][key]
 
-        if comparing_old == comparing_new and not force_update:
+        if not force_update and comparing_old == comparing_new:
             return False
 
-        self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data})
-        del self.task_cache[task_id]
+        res = self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data}, upsert=True)
+        if task_id in self.task_cache:
+            del self.task_cache[task_id]
         return True
 
     def update_database(self, start_from: str = None, page_size: int = 10):
@@ -70,8 +67,6 @@ class NotionManager:
             updated_tasks.append(self.upsert_data(task["id"], task))
             last_task = task
 
-        print(updated_tasks)
-
         # if last page is updated, recursively update
         if len(results) == page_size and updated_tasks[-1]:
             self.update_database(start_from=last_task["id"], page_size=page_size*2)
@@ -92,4 +87,15 @@ class NotionManager:
         for task_id in task_ids:
             result.append(self.get_task(task_id["id"]))
         return result
+
+    def get_active_tasks(self):
+        tasks = []
+        for task in self.get_all_tasks():
+            if task.get_status() != "未完了":
+                continue
+            now = datetime.datetime.now(task.get_start_date().astimezone().tzinfo)
+            if not (task.get_start_date() <= now <= task.get_end_date()):
+                continue
+            tasks.append(task)
+        return tasks
 

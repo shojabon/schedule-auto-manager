@@ -11,7 +11,7 @@ class FlexTask:
 
     def __init__(self, data: dict, main: ScheduleAutoManager):
         self.data = data
-        self.main = main
+        self.main: ScheduleAutoManager = main
 
     def get_id(self):
         return self.data["id"]
@@ -25,12 +25,20 @@ class FlexTask:
     def get_start_date(self):
         if self.get_date_data()["start"] is None:
             return None
-        return datetime.datetime.fromisoformat(self.get_date_data()["start"])
+        result = datetime.datetime.fromisoformat(self.get_date_data()["start"])
+        # if no timezone info, assume JST
+        if result.tzinfo is None:
+            result = result.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
+        return result
 
     def get_end_date(self):
         if self.get_date_data()["end"] is None:
             return self.get_start_date()
-        return datetime.datetime.fromisoformat(self.get_date_data()["end"])
+        result = datetime.datetime.fromisoformat(self.get_date_data()["end"])
+        # if no timezone info, assume JST
+        if result.tzinfo is None:
+            result = result.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
+        return result
 
     def get_zones(self) -> list[str]:
         zones = []
@@ -52,3 +60,63 @@ class FlexTask:
 
     def get_status(self):
         return self.data["properties"]["ステータス"]["status"]["name"]
+
+    def get_required_tasks(self):
+        required_tasks = []
+        for task in self.data["properties"]["完了必須タスク"]["relation"]:
+            required_tasks.append(task["id"])
+        return required_tasks
+
+    def get_parent_tasks(self):
+        parent_tasks = []
+        for task in self.data["properties"]["親タスク"]["relation"]:
+            parent_tasks.append(task["id"])
+        return parent_tasks
+
+
+    def get_project_tasks(self):
+        project_tasks = []
+        if len(self.get_parent_tasks()) != 0:
+            previous_task_id = self.get_parent_tasks()[0]
+            while True:
+                previous_task = self.main.notion_manager.get_task(previous_task_id)
+                if previous_task is None:
+                    break
+                project_tasks.append(previous_task_id)
+                if len(previous_task.get_parent_tasks()) == 0:
+                    break
+                previous_task_id = previous_task.get_parent_tasks()[0]
+
+        project_tasks.reverse()
+        project_tasks.append(self.get_id())
+
+        if len(self.get_required_tasks()) != 0:
+            previous_task_id = self.get_required_tasks()[0]
+            while True:
+                previous_task = self.main.notion_manager.get_task(previous_task_id)
+                if previous_task is None:
+                    break
+                project_tasks.append(previous_task_id)
+                if len(previous_task.get_required_tasks()) == 0:
+                    break
+                previous_task_id = previous_task.get_required_tasks()[0]
+
+        project_tasks.reverse()
+        return project_tasks
+
+    def get_project_tasks_count(self):
+        return len(self.get_project_tasks())
+
+    def get_project_tasks_index(self):
+        return self.get_project_tasks().index(self.get_id())
+
+    def get_score(self):
+        now = datetime.datetime.now()
+        # set timezone to self.get_start_date() timezone
+        now = now.astimezone(self.get_start_date().astimezone().tzinfo)
+        days_past = (now - self.get_start_date()).days
+
+        days_duration = (self.get_end_date() - self.get_start_date()).days
+
+        score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
+        return score

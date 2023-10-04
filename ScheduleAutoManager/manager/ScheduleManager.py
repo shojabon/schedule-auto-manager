@@ -10,3 +10,4 @@ class ScheduleManager:
     def __init__(self, main: ScheduleAutoManager):
         self.main = main
 
+
