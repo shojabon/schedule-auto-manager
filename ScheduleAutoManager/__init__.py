@@ -25,5 +25,6 @@ class ScheduleAutoManager:
         #     print(x)
 
         self.notion_manager.update_database()
+        self.notion_manager.delete_unnecessary_tasks()
 
-        print(len(self.notion_manager.get_active_tasks()))
+        # print(len(self.notion_manager.get_active_tasks()))
