@@ -40,6 +40,9 @@ class FlexTask:
             result = result.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
         return result
 
+    def days_left(self):
+        return (self.get_end_date() - datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))).days
+
     def get_zones(self) -> list[str]:
         zones = []
         for zone in self.data["properties"]["タスクゾーン"]["multi_select"]:

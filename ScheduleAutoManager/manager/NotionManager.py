@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import time
 from typing import TYPE_CHECKING
 from notion_client import Client
@@ -47,6 +48,45 @@ class NotionManager:
         if task_id in self.task_cache:
             del self.task_cache[task_id]
         return True
+
+    def push_score_to_database(self):
+        tasks = {}
+        for task in self.get_active_tasks():
+            tasks[task.get_id()] = task.get_score()
+
+        # sort
+        tasks = dict(sorted(tasks.items(), key=lambda x: x[1], reverse=True))
+        top_tasks = []
+        for task_id, score in tqdm(tasks.items()):
+            if score >= 0.7:
+                top_tasks.append(task_id)
+
+        top_tasks = [self.get_task(task_id) for task_id in top_tasks]
+        score_update_key = "|-|".join([task.get_id() for task in top_tasks])
+        # md5
+        score_update_key = hashlib.md5(score_update_key.encode()).hexdigest()
+
+        if self.main.config["notion"]["scoreUpdateKey"] == score_update_key:
+            return
+        for task in tqdm(top_tasks, desc="Pushing score to database"):
+            for x in range(5):
+                try:
+                    self.notion.pages.update(
+                        page_id=task.get_id(),
+                        archived=False,
+                        properties={
+                            "重要度スコア": {
+                                "number": task.get_score()
+                            }
+                        }
+                    )
+                    break
+                except Exception as e:
+                    time.sleep(3)
+                    continue
+        self.main.config["notion"]["scoreUpdateKey"] = score_update_key
+        self.main.save_config()
+
 
     def update_database(self, start_from: str = None, page_size: int = 10):
         query_result = None
