@@ -110,6 +110,7 @@ class FlexTask:
     def get_project_tasks_count(self):
         return len(self.get_project_tasks())
 
+
     def get_project_tasks_index(self):
         return self.get_project_tasks().index(self.get_id())
 

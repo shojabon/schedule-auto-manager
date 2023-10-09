@@ -5,7 +5,10 @@ if TYPE_CHECKING:
     from ScheduleAutoManager import ScheduleAutoManager
 
 
-class FixedTask:
+class GoogleCalendarFixedTask:
 
     def __init__(self, data: dict, main: ScheduleAutoManager):
         self.main = main
+        self.data = data
+
+

@@ -24,11 +24,11 @@ class ScheduleAutoManager:
         # for x in keys:
         #     print(x)
 
-        self.notion_manager.update_database()
-        self.notion_manager.delete_unnecessary_tasks()
-
-        self.notion_manager.push_score_to_database()
-        #
+        # self.notion_manager.update_database()
+        # self.notion_manager.delete_unnecessary_tasks()
+        # #
+        # self.notion_manager.push_score_to_database()
+        # #
         # tasks = {}
         #
         # for task in self.notion_manager.get_active_tasks():
@@ -42,5 +42,5 @@ class ScheduleAutoManager:
 
     def save_config(self):
         config_file = open("config/config.json", "w", encoding="utf-8")
-        config_file.write(json.dumps(self.config, indent=4))
+        config_file.write(json.dumps(self.config, indent=4, ensure_ascii=False))
         config_file.close()
