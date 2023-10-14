@@ -26,6 +26,7 @@ class NotionManager:
 
     def upsert_data(self, task_id: str, new_data: dict):
         task = self.get_task(task_id)
+        task.mark_as_completed_in_google_calendar()
         comparing_old = {}
         force_update = False
         for key in self.main.config["notion"]["checkingFields"]:
@@ -171,4 +172,5 @@ class NotionManager:
                 continue
             tasks.append(task)
         return tasks
+
 

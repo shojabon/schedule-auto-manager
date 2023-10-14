@@ -124,3 +124,24 @@ class FlexTask:
 
         score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
         return score
+
+    def mark_as_completed_in_google_calendar(self):
+        completed_record = self.main.mongo["scheduleAutoManager"]["completed_tasks"].find_one({"taskId": self.get_id()})
+        status = None
+        if completed_record is not None:
+            status = completed_record["status"]
+
+        if status == "完了":
+            return
+
+        if self.get_status() != "完了":
+            return
+
+        self.main.mongo["scheduleAutoManager"]["completed_tasks"].update_one({"taskId": self.get_id()}, {"$set": {"status": "完了"}}, upsert=True)
+        self.main.google_calendar_manager.create_calendar_schedule(
+            self.main.google_calendar_manager.get_calendar_id("marker"),
+            self.get_name(),
+            datetime.datetime.now() - datetime.timedelta(minutes=1),
+            1,
+            self.get_id() + "-google-calendar-marker"
+        )

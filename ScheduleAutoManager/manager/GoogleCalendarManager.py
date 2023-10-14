@@ -21,9 +21,9 @@ class GoogleCalendarManager:
 
         self.service = build('calendar', 'v3', credentials=credentials)
 
-        self.update_all_databases()
+        # self.update_all_databases()
         # self.create_calendar_schedule(calendar_id="shojabon@gmail.com", name="test2", start=datetime.datetime.now() + datetime.timedelta(minutes=30), duration=30, unique_id="testa")
-        self.delete_calendar_schedule(calendar_id="shojabon@gmail.com", unique_id="testa")
+        # self.delete_calendar_schedule(calendar_id="shojabon@gmail.com", unique_id="testa")
         # self.update_database("shojabon@gmail.com")
         # self.delete_calendar_schedule(calendar_id="shojabon@gmail.com", event_id="jmvhiqsroua6imc9c1icgcs1jk")
     def update_database(self, calendar_id: str, page_token: str = None, page_size: int = 25):
@@ -91,4 +91,9 @@ class GoogleCalendarManager:
         self.main.mongo["scheduleAutoManager"]["google_calendar_tasks"].update_one({"id": event_id}, {"$set": {"status": "cancelled"}}, upsert=True)
         if unique_id is not None:
             self.main.mongo["scheduleAutoManager"]["google_calendar_unique_ids"].delete_one({"unique_id": unique_id})
+
+    def get_calendar_id(self, alias: str):
+        if alias not in self.main.config["googleCalendar"]["calendarMap"]:
+            raise ValueError(f"Calendar alias {alias} not found")
+        return self.main.config["googleCalendar"]["calendarMap"][alias]
 
