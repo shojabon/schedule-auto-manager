@@ -121,6 +121,8 @@ class FlexTask:
         days_past = (now - self.get_start_date()).days
 
         days_duration = (self.get_end_date() - self.get_start_date()).days
+        if days_duration == 0:
+            days_duration = 0.1
 
         score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
         return score
@@ -137,7 +139,7 @@ class FlexTask:
         if self.get_status() != "完了":
             return
 
-        self.main.mongo["scheduleAutoManager"]["completed_tasks"].update_one({"taskId": self.get_id()}, {"$set": {"status": "完了"}}, upsert=True)
+        self.main.mongo["scheduleAutoManager"]["completed_tasks"].update_one({"taskId": self.get_id()}, {"$set": {"status": "完了", "datetime": datetime.datetime.now()}}, upsert=True)
         self.main.google_calendar_manager.create_calendar_schedule(
             self.main.google_calendar_manager.get_calendar_id("marker"),
             self.get_name(),

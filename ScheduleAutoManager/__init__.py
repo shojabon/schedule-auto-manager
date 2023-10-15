@@ -19,20 +19,10 @@ class ScheduleAutoManager:
         self.notion_manager = NotionManager(self)
         self.google_calendar_manager = GoogleCalendarManager(self)
 
-        # task = self.notion_manager.get_task("0c07dc72-4fa5-4b32-b965-112ee7c6df7f")
-        # keys = task.data["properties"].keys()
-        # print(task.get_name(), task.get_insurance_rate(), task.get_score())
-        # for x in keys:
-        #     print(x)
-        #
-
-        # print(self.google_calendar_manager.create_calendar_schedule(self.google_calendar_manager.get_calendar_id("marker"), "test", datetime.datetime.now(), 30, "testaa"))
-        # self.google_calendar_manager.delete_calendar_schedule(self.google_calendar_manager.get_calendar_id("marker"), event_id=None, unique_id="testaa")
-
         self.notion_manager.update_database()
         self.notion_manager.delete_unnecessary_tasks()
         #
-        # self.notion_manager.push_score_to_database()
+        self.notion_manager.push_score_to_database()
         # #
         # tasks = {}
         #

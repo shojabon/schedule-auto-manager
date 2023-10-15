@@ -15,7 +15,7 @@ class GoogleCalendarManager:
 
     def __init__(self, main: ScheduleAutoManager):
         self.main = main
-        credentials, project = google.auth.load_credentials_from_file('config/mat-project-341415-7328c1f3e2c8.json',
+        credentials, project = google.auth.load_credentials_from_file('config/google-key.json',
                                                                       scopes=[
                                                                           'https://www.googleapis.com/auth/calendar'])
 

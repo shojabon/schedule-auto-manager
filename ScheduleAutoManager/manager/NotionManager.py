@@ -26,7 +26,6 @@ class NotionManager:
 
     def upsert_data(self, task_id: str, new_data: dict):
         task = self.get_task(task_id)
-        task.mark_as_completed_in_google_calendar()
         comparing_old = {}
         force_update = False
         for key in self.main.config["notion"]["checkingFields"]:
@@ -48,6 +47,11 @@ class NotionManager:
         res = self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data}, upsert=True)
         if task_id in self.task_cache:
             del self.task_cache[task_id]
+
+        task = self.get_task(task_id)
+        if task is not None:
+            task.mark_as_completed_in_google_calendar()
+
         return True
 
     def push_score_to_database(self):
@@ -63,12 +67,18 @@ class NotionManager:
                 top_tasks.append(task_id)
 
         top_tasks = [self.get_task(task_id) for task_id in top_tasks]
-        score_update_key = "|-|".join([task.get_id() for task in top_tasks])
-        # md5
-        score_update_key = hashlib.md5(score_update_key.encode()).hexdigest()
+        score_update_key = [task.get_id() for task in top_tasks]
 
-        if self.main.config["notion"]["scoreUpdateKey"] == score_update_key:
+        score_compare_key = self.main.config["notion"]["scoreUpdateKey"].copy()
+
+
+        for task_id in list(score_compare_key):
+            if task_id not in score_update_key:
+                score_compare_key.remove(task_id)
+
+        if score_compare_key == score_update_key:
             return
+
         for task in tqdm(top_tasks, desc="Pushing score to database"):
             for x in range(5):
                 try:
