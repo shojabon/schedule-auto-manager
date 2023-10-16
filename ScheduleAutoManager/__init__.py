@@ -15,6 +15,7 @@ class ScheduleAutoManager:
     def execute_every_minute(self):
         while not self.stop_event.is_set():
             try:
+                # self.notion_manager.update_database(update_incomplete=True)
                 self.notion_manager.update_database()
                 self.notion_manager.delete_unnecessary_tasks()
                 self.notion_manager.push_score_to_database()
@@ -47,7 +48,6 @@ class ScheduleAutoManager:
 
         # #
         # tasks = {}
-        #
         # for task in self.notion_manager.get_active_tasks():
         #     tasks[task.get_id()] = (task.get_score(), task.days_left())
         #
@@ -55,8 +55,6 @@ class ScheduleAutoManager:
         # for task in tasks:
         #     task = self.notion_manager.get_task(task[0])
         #     print(task.get_name(), task.get_score(), task.get_determined_end_date())
-
-        # print(len(self.notion_manager.get_active_tasks()))
 
     def stop(self):
         self.stop_event.set()

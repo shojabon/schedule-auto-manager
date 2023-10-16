@@ -65,7 +65,7 @@ class NotionManager:
         tasks = dict(sorted(tasks.items(), key=lambda x: x[1], reverse=True))
         top_tasks = []
         for task_id, score in tqdm(tasks.items()):
-            if score >= 0.7:
+            if score >= 0.3:
                 top_tasks.append(task_id)
 
         top_tasks = [self.get_task(task_id) for task_id in top_tasks]
@@ -100,9 +100,16 @@ class NotionManager:
         self.main.config["notion"]["scoreUpdateKey"] = score_update_key
         self.main.save_config()
 
-
-    def update_database(self, start_from: str = None, page_size: int = 10):
+    def update_database(self, start_from: str = None, page_size: int = 10, update_incomplete: bool = False):
         query_result = None
+        notion_filter = {}
+        if not update_incomplete:
+            notion_filter = {
+                "property": "ステータス",
+                "select": {
+                    "equals": "未完了"
+                }
+            }
         for x in range(5):
             try:
                 query_result = self.notion.databases.query(
@@ -115,6 +122,7 @@ class NotionManager:
                     ],
                     start_cursor=start_from,
                     page_size=page_size,
+                    filter=notion_filter
                 )
                 break
             except Exception as e:
