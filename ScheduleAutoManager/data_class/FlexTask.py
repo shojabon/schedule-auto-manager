@@ -149,6 +149,7 @@ class FlexTask:
             return
 
         self.main.mongo["scheduleAutoManager"]["completed_tasks"].update_one({"taskId": self.get_id()}, {"$set": {"status": "完了", "datetime": datetime.datetime.now()}}, upsert=True)
+        print("marking as completed in google calendar", self.get_name())
         self.main.google_calendar_manager.create_calendar_schedule(
             self.main.google_calendar_manager.get_calendar_id("marker"),
             self.get_name(),
