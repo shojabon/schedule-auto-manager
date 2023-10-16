@@ -1,5 +1,8 @@
 import datetime
 import json
+import threading
+import time
+from threading import Thread
 
 from pymongo import MongoClient
 
@@ -8,6 +11,23 @@ from ScheduleAutoManager.manager.NotionManager import NotionManager
 
 
 class ScheduleAutoManager:
+
+    def execute_every_minute(self):
+        while not self.stop_event.is_set():
+            try:
+                self.notion_manager.update_database()
+                self.notion_manager.delete_unnecessary_tasks()
+                self.notion_manager.push_score_to_database()
+                self.google_calendar_manager.update_all_databases()
+
+                # Sleep in 1 second intervals, checking for the stop event each time
+                for _ in range(60):
+                    if self.stop_event.is_set():
+                        break
+                    time.sleep(1)
+
+            except Exception as e:
+                print(e)
 
     def __init__(self):
         config_file = open("config/config.json", encoding="utf-8")
@@ -19,21 +39,28 @@ class ScheduleAutoManager:
         self.notion_manager = NotionManager(self)
         self.google_calendar_manager = GoogleCalendarManager(self)
 
-        self.notion_manager.update_database()
-        self.notion_manager.delete_unnecessary_tasks()
-        #
-        self.notion_manager.push_score_to_database()
+        self.stop_event = threading.Event()
+
+        # start execute every minute thread
+        self.execute_minute_thread = Thread(target=self.execute_every_minute)
+        self.execute_minute_thread.start()
+
         # #
         # tasks = {}
         #
         # for task in self.notion_manager.get_active_tasks():
-        #     tasks[task.get_name()] = (task.get_score(), task.days_left())
+        #     tasks[task.get_id()] = (task.get_score(), task.days_left())
         #
         # tasks = sorted(tasks.items(), key=lambda x: x[1], reverse=True)
         # for task in tasks:
-        #     print(task[0], task[1])
+        #     task = self.notion_manager.get_task(task[0])
+        #     print(task.get_name(), task.get_score(), task.get_determined_end_date())
 
         # print(len(self.notion_manager.get_active_tasks()))
+
+    def stop(self):
+        self.stop_event.set()
+        self.execute_minute_thread.join()
 
     def save_config(self):
         config_file = open("config/config.json", "w", encoding="utf-8")

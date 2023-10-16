@@ -23,7 +23,7 @@ class FlexTask:
         return self.data["properties"]["日付"]["date"]
 
     def get_start_date(self):
-        if self.get_date_data()["start"] is None:
+        if self.get_date_data() is None:
             return None
         result = datetime.datetime.fromisoformat(self.get_date_data()["start"])
         # if no timezone info, assume JST
@@ -126,6 +126,15 @@ class FlexTask:
 
         score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
         return score
+
+    def get_determined_end_date(self):
+        if self.get_end_date() is None:
+            return None
+        duration_minutes = (self.get_end_date() - self.get_start_date()).total_seconds() / 60
+        duration_minutes = duration_minutes * self.get_insurance_rate()
+        duration_minutes = duration_minutes * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())
+        return self.get_start_date() + datetime.timedelta(minutes=duration_minutes)
+
 
     def mark_as_completed_in_google_calendar(self):
         completed_record = self.main.mongo["scheduleAutoManager"]["completed_tasks"].find_one({"taskId": self.get_id()})

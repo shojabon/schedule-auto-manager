@@ -57,6 +57,8 @@ class NotionManager:
     def push_score_to_database(self):
         tasks = {}
         for task in self.get_active_tasks():
+            if task.get_date_data() is None:
+                continue
             tasks[task.get_id()] = task.get_score()
 
         # sort
@@ -176,6 +178,8 @@ class NotionManager:
         tasks = []
         for task in self.get_all_tasks():
             if task.get_status() != "未完了":
+                continue
+            if task.get_date_data() is None:
                 continue
             now = datetime.datetime.now(task.get_start_date().astimezone().tzinfo)
             if not (task.get_start_date() <= now <= task.get_end_date()):
