@@ -100,16 +100,8 @@ class NotionManager:
         self.main.config["notion"]["scoreUpdateKey"] = score_update_key
         self.main.save_config()
 
-    def update_database(self, start_from: str = None, page_size: int = 10, update_incomplete: bool = False):
+    def update_database(self, start_from: str = None, page_size: int = 10):
         query_result = None
-        notion_filter = {}
-        if not update_incomplete:
-            notion_filter = {
-                "property": "ステータス",
-                "select": {
-                    "equals": "未完了"
-                }
-            }
         for x in range(5):
             try:
                 query_result = self.notion.databases.query(
@@ -121,8 +113,7 @@ class NotionManager:
                         }
                     ],
                     start_cursor=start_from,
-                    page_size=page_size,
-                    filter=notion_filter
+                    page_size=page_size
                 )
                 break
             except Exception as e:
