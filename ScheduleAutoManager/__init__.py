@@ -45,10 +45,11 @@ class ScheduleAutoManager:
         # start execute every minute thread
         self.execute_minute_thread = Thread(target=self.execute_every_minute)
         self.execute_minute_thread.start()
-
         # #
         # tasks = {}
         # for task in self.notion_manager.get_active_tasks():
+        #     if task.days_left() is None:
+        #         continue
         #     tasks[task.get_id()] = (task.get_score(), task.days_left())
         #
         # tasks = sorted(tasks.items(), key=lambda x: x[1], reverse=True)

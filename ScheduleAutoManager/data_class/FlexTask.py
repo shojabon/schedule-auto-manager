@@ -32,6 +32,8 @@ class FlexTask:
         return result
 
     def get_end_date(self):
+        if self.get_date_data() is None:
+            return None
         if self.get_date_data()["end"] is None:
             return self.get_start_date()
         result = datetime.datetime.fromisoformat(self.get_date_data()["end"])
@@ -41,6 +43,8 @@ class FlexTask:
         return result
 
     def days_left(self):
+        if self.get_end_date() is None:
+            return None
         return (self.get_end_date() - datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))).days
 
     def get_zones(self) -> list[str]:
@@ -115,6 +119,8 @@ class FlexTask:
         return self.get_project_tasks().index(self.get_id())
 
     def get_score(self):
+        if self.get_start_date() is None:
+            return 0
         now = datetime.datetime.now()
         # set timezone to self.get_start_date() timezone
         now = now.astimezone(self.get_start_date().astimezone().tzinfo)
