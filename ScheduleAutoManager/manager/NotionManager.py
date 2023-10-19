@@ -90,11 +90,18 @@ class NotionManager:
                         properties={
                             "重要度スコア": {
                                 "number": task.get_score()
+                            },
+                            "みなし終わり日": {
+                                "date": {
+                                    "time_zone": "Asia/Tokyo",
+                                    "start": task.get_determined_end_date().strftime("%Y-%m-%dT%H:%M:%SZ")
+                                }
                             }
                         }
                     )
                     break
                 except Exception as e:
+                    print(e)
                     time.sleep(3)
                     continue
         self.main.config["notion"]["scoreUpdateKey"] = score_update_key
