@@ -130,7 +130,11 @@ class FlexTask:
         if days_duration == 0:
             days_duration = 0.1
 
-        score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
+        minutes_duration = (self.get_end_date() - self.get_start_date()).total_seconds() / 60
+        if minutes_duration == 0:
+            minutes_duration = 0.1
+
+        score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count()))) + 1 / (minutes_duration/60/24+1)
         return score
 
     def get_determined_end_date(self):
