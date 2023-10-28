@@ -15,7 +15,12 @@ class ScheduleAutoManager:
     def execute_every_minute(self):
         while not self.stop_event.is_set():
             try:
-                # self.notion_manager.update_database(update_incomplete=True)
+                self.notion_manager.update_database(task_filter={
+                    "property": "最終更新者",
+                    "people": {
+                        "contains": self.config["notion"]["userId"]
+                    }
+                })
                 self.notion_manager.update_database()
                 self.notion_manager.delete_unnecessary_tasks()
                 self.notion_manager.push_score_to_database()
@@ -45,6 +50,8 @@ class ScheduleAutoManager:
         # start execute every minute thread
         self.execute_minute_thread = Thread(target=self.execute_every_minute)
         self.execute_minute_thread.start()
+
+        self.notion_manager.get_calculated_end_date()
         # #
         # tasks = {}
         # for task in self.notion_manager.get_active_tasks():

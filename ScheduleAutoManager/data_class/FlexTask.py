@@ -111,6 +111,13 @@ class FlexTask:
         project_tasks.reverse()
         return project_tasks
 
+    def get_project_name(self):
+        try:
+            text = self.data["properties"]["プロジェクト"]["rich_text"][0]["text"]["content"]
+        except:
+            return None
+        return text
+
     def get_project_tasks_count(self):
         return len(self.get_project_tasks())
 
@@ -134,10 +141,13 @@ class FlexTask:
         if minutes_duration == 0:
             minutes_duration = 0.1
 
-        score = ((days_past + 2) / (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count()))) + 1 / (minutes_duration/60/24+1)
+        score = (((days_past + 2) /
+                 (days_duration * self.get_insurance_rate() * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())))
+
+                 + 1 / (minutes_duration/60/24+1))
         return score
 
-    def get_determined_end_date(self):
+    def get_determined_end_date(self) -> datetime.datetime | None:
         if self.get_end_date() is None:
             return None
         duration_minutes = (self.get_end_date() - self.get_start_date()).total_seconds() / 60

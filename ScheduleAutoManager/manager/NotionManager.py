@@ -54,6 +54,49 @@ class NotionManager:
 
         return True
 
+    def get_calculated_end_date(self):
+        tasks_in_range = []
+        for task in self.get_active_tasks():
+            # if task.get_determined_end_date() is in the past including today:
+            if task.get_determined_end_date().date() > datetime.datetime.now().date():
+                continue
+            tasks_in_range.append(task)
+        tasks_in_range.reverse()
+
+        project_split_tasks: [str, FlexTask] = {}
+
+        for task in tasks_in_range:
+            project_name = task.get_project_name()
+            if project_name not in project_split_tasks:
+                project_split_tasks[project_name] = []
+            project_split_tasks[project_name].append(task)
+
+        batched_tasks = []
+
+        for project_name, tasks in project_split_tasks.items():
+            reversed_tasks = tasks
+            reversed_tasks.reverse()
+            # batch by 3 tasks
+            for i in range(0, len(reversed_tasks), 3):
+                batched = reversed_tasks[i:i + 3]
+                batched.reverse()
+                # average the end date
+                average_end_date = sum([task.get_determined_end_date().timestamp() for task in batched]) / len(batched)
+                batched_tasks.append((batched, average_end_date))
+
+        batched_tasks.sort(key=lambda x: x[1])
+        result = {}
+
+        for batched, average_end_date in batched_tasks:
+            # print name and end date
+            for idx, task in enumerate(batched):
+                result[task.get_id()] = datetime.datetime.fromtimestamp(average_end_date + idx* 60)
+
+        return result
+
+
+
+
     def push_score_to_database(self):
         tasks = {}
         for task in self.get_active_tasks():
@@ -81,6 +124,8 @@ class NotionManager:
         if score_compare_key == score_update_key:
             return
 
+        calculated_end_date_map = self.get_calculated_end_date()
+
         for task in tqdm(top_tasks, desc="Pushing score to database"):
             for x in range(5):
                 try:
@@ -96,6 +141,12 @@ class NotionManager:
                                     "time_zone": "Asia/Tokyo",
                                     "start": task.get_determined_end_date().strftime("%Y-%m-%dT%H:%M:%SZ")
                                 }
+                            },
+                            "計算終わり日": {
+                                "date": {
+                                    "time_zone": "Asia/Tokyo",
+                                    "start": calculated_end_date_map[task.get_id()].strftime("%Y-%m-%dT%H:%M:%SZ") if task.get_id() in calculated_end_date_map else task.get_determined_end_date().strftime("%Y-%m-%dT%H:%M:%SZ")
+                                }
                             }
                         }
                     )
@@ -107,7 +158,7 @@ class NotionManager:
         self.main.config["notion"]["scoreUpdateKey"] = score_update_key
         self.main.save_config()
 
-    def update_database(self, start_from: str = None, page_size: int = 10):
+    def update_database(self, start_from: str = None, page_size: int = 10, task_filter: dict = None):
         query_result = None
         for x in range(5):
             try:
@@ -120,10 +171,12 @@ class NotionManager:
                         }
                     ],
                     start_cursor=start_from,
-                    page_size=page_size
+                    page_size=page_size,
+                    filter=task_filter
                 )
                 break
             except Exception as e:
+                print(e)
                 time.sleep(3)
                 continue
 
@@ -134,7 +187,9 @@ class NotionManager:
         updated_tasks = []
         last_task = None
         for task in results:
-            updated_tasks.append(self.upsert_data(task["id"], task))
+            result = self.upsert_data(task["id"], task)
+            updated_tasks.append(result)
+            # print(f"Updated task {task['id']} with result {result}")
             last_task = task
 
         # if last page is updated, recursively update
