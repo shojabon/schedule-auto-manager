@@ -51,7 +51,6 @@ class ScheduleAutoManager:
         self.execute_minute_thread = Thread(target=self.execute_every_minute)
         self.execute_minute_thread.start()
 
-        self.notion_manager.get_calculated_end_date()
         # #
         # tasks = {}
         # for task in self.notion_manager.get_active_tasks():

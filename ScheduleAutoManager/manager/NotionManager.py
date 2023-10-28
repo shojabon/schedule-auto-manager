@@ -80,8 +80,8 @@ class NotionManager:
             for i in range(0, len(reversed_tasks), 3):
                 batched = reversed_tasks[i:i + 3]
                 batched.reverse()
-                # average the end date
-                average_end_date = sum([task.get_determined_end_date().timestamp() for task in batched]) / len(batched)
+                # get the first task's end date
+                average_end_date = batched[0].get_determined_end_date().timestamp()
                 batched_tasks.append((batched, average_end_date))
 
         batched_tasks.sort(key=lambda x: x[1])
