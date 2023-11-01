@@ -44,7 +44,8 @@ class NotionManager:
         if not force_update and comparing_old == comparing_new and task.data["archived"] == new_data["archived"]:
             return False
 
-        res = self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data}, upsert=True)
+        res = self.main.mongo["scheduleAutoManager"]["notion_tasks"].update_one({"id": task_id}, {"$set": new_data},
+                                                                                upsert=True)
         if task_id in self.task_cache:
             del self.task_cache[task_id]
 
@@ -90,43 +91,29 @@ class NotionManager:
         for batched, average_end_date in batched_tasks:
             # print name and end date
             for idx, task in enumerate(batched):
-                result[task.get_id()] = datetime.datetime.fromtimestamp(average_end_date + idx* 60)
+                result[task.get_id()] = datetime.datetime.fromtimestamp(average_end_date + idx * 60)
+                # set time zone to JST
+                result[task.get_id()] = result[task.get_id()].astimezone(
+                    tz=datetime.timezone(datetime.timedelta(hours=9)))
 
         return result
 
-
-
-
     def push_score_to_database(self):
-        tasks = {}
-        for task in self.get_active_tasks():
-            if task.get_date_data() is None:
-                continue
-            tasks[task.get_id()] = task.get_score()
-
-        # sort
-        tasks = dict(sorted(tasks.items(), key=lambda x: x[1], reverse=True))
-        top_tasks = []
-        for task_id, score in tqdm(tasks.items()):
-            if score >= 0.3:
-                top_tasks.append(task_id)
-
-        top_tasks = [self.get_task(task_id) for task_id in top_tasks]
-        score_update_key = [task.get_id() for task in top_tasks]
-
-        score_compare_key = self.main.config["notion"]["scoreUpdateKey"].copy()
-
-
-        for task_id in list(score_compare_key):
-            if task_id not in score_update_key:
-                score_compare_key.remove(task_id)
-
-        if score_compare_key == score_update_key:
-            return
 
         calculated_end_date_map = self.get_calculated_end_date()
+        differing_data_tasks = []
 
-        for task in tqdm(top_tasks, desc="Pushing score to database"):
+        for task in self.get_active_tasks():
+            if task.get_determined_end_date_data() != task.get_determined_end_date():
+                differing_data_tasks.append(task)
+                continue
+            calculated_end_date = calculated_end_date_map[
+                task.get_id()] if task.get_id() in calculated_end_date_map else task.get_determined_end_date()
+            if task.get_calculated_end_date_data() != calculated_end_date:
+                differing_data_tasks.append(task)
+                continue
+
+        for task in tqdm(differing_data_tasks, desc="Pushing score to database"):
             for x in range(5):
                 try:
                     self.notion.pages.update(
@@ -145,7 +132,9 @@ class NotionManager:
                             "計算終わり日": {
                                 "date": {
                                     "time_zone": "Asia/Tokyo",
-                                    "start": calculated_end_date_map[task.get_id()].strftime("%Y-%m-%dT%H:%M:%SZ") if task.get_id() in calculated_end_date_map else task.get_determined_end_date().strftime("%Y-%m-%dT%H:%M:%SZ")
+                                    "start": calculated_end_date_map[task.get_id()].strftime(
+                                        "%Y-%m-%dT%H:%M:%SZ") if task.get_id() in calculated_end_date_map else task.get_determined_end_date().strftime(
+                                        "%Y-%m-%dT%H:%M:%SZ")
                                 }
                             }
                         }
@@ -155,8 +144,8 @@ class NotionManager:
                     print(e)
                     time.sleep(3)
                     continue
-        self.main.config["notion"]["scoreUpdateKey"] = score_update_key
-        self.main.save_config()
+        # self.main.config["notion"]["scoreUpdateKey"] = score_update_key
+        # self.main.save_config()
 
     def update_database(self, start_from: str = None, page_size: int = 10, task_filter: dict = None):
         query_result = None
@@ -194,7 +183,7 @@ class NotionManager:
 
         # if last page is updated, recursively update
         if len(results) == page_size and updated_tasks[-1]:
-            self.update_database(start_from=last_task["id"], page_size=page_size*2)
+            self.update_database(start_from=last_task["id"], page_size=page_size * 2)
 
     def delete_unnecessary_tasks(self):
         task_ids = []
@@ -247,5 +236,3 @@ class NotionManager:
                 continue
             tasks.append(task)
         return tasks
-
-

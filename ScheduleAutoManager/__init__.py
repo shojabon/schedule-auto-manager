@@ -61,7 +61,7 @@ class ScheduleAutoManager:
         # tasks = sorted(tasks.items(), key=lambda x: x[1], reverse=True)
         # for task in tasks:
         #     task = self.notion_manager.get_task(task[0])
-        #     print(task.get_name(), task.get_score(), task.get_determined_end_date())
+        #     print(task.get_name(), task.get_determined_end_date_data(), task.get_determined_end_date())
 
     def stop(self):
         self.stop_event.set()

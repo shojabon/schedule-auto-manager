@@ -22,6 +22,30 @@ class FlexTask:
     def get_date_data(self):
         return self.data["properties"]["日付"]["date"]
 
+    def get_calculated_end_date_data(self):
+        try:
+            data =  self.data["properties"]["計算終わり日"]["date"]["start"]
+            # convert to datetime
+            result = datetime.datetime.fromisoformat(data)
+            # if no timezone info, assume JST
+            if result.tzinfo is None:
+                result = result.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
+            return result
+        except Exception:
+            return None
+
+    def get_determined_end_date_data(self):
+        try:
+            data = self.data["properties"]["みなし終わり日"]["date"]["start"]
+            # convert to datetime
+            result = datetime.datetime.fromisoformat(data)
+            # if no timezone info, assume JST
+            if result.tzinfo is None:
+                result = result.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
+            return result
+        except Exception:
+            return None
+
     def get_start_date(self):
         if self.get_date_data() is None:
             return None
