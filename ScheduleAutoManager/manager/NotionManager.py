@@ -24,7 +24,7 @@ class NotionManager:
 
         # self.update_database()
 
-    def upsert_data(self, task_id: str, new_data: dict):
+    def upsert_data(self, task_id: str, new_data: dict, force_push_update=False):
         task = self.get_task(task_id)
         comparing_old = {}
         force_update = False
@@ -40,6 +40,9 @@ class NotionManager:
                 force_update = True
                 continue
             comparing_new[key] = new_data["properties"][key]
+
+        if force_push_update:
+            force_update = True
 
         if not force_update and comparing_old == comparing_new and task.data["archived"] == new_data["archived"]:
             return False
@@ -116,6 +119,7 @@ class NotionManager:
         for task in tqdm(differing_data_tasks, desc="Pushing score to database"):
             for x in range(5):
                 try:
+                    print("Pushing score to database: " + task.get_name())
                     self.notion.pages.update(
                         page_id=task.get_id(),
                         archived=False,

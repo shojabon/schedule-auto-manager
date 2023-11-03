@@ -5,6 +5,7 @@ import time
 from threading import Thread
 
 from pymongo import MongoClient
+from tqdm import tqdm
 
 from ScheduleAutoManager.manager.GoogleCalendarManager import GoogleCalendarManager
 from ScheduleAutoManager.manager.NotionManager import NotionManager
@@ -50,6 +51,8 @@ class ScheduleAutoManager:
         # start execute every minute thread
         self.execute_minute_thread = Thread(target=self.execute_every_minute)
         self.execute_minute_thread.start()
+
+
 
         # #
         # tasks = {}

@@ -181,18 +181,16 @@ class FlexTask:
 
 
     def mark_as_completed_in_google_calendar(self):
-        completed_record = self.main.mongo["scheduleAutoManager"]["completed_tasks"].find_one({"taskId": self.get_id()})
-        status = None
-        if completed_record is not None:
-            status = completed_record["status"]
-
-        if status == "完了":
+        completed_time = self.get_metadata("completedTime")
+        if completed_time is not None:
+            if self.get_status() != "完了":
+                self.set_metadata("completedTime", None)
+                self.main.google_calendar_manager.delete_calendar_schedule(self.main.google_calendar_manager.get_calendar_id("marker"),
+                                                                           unique_id=self.get_id() + "-google-calendar-marker")
             return
-
         if self.get_status() != "完了":
             return
-
-        self.main.mongo["scheduleAutoManager"]["completed_tasks"].update_one({"taskId": self.get_id()}, {"$set": {"status": "完了", "name": self.get_name(), "datetime": datetime.datetime.now()}}, upsert=True)
+        self.set_metadata("completedTime", datetime.datetime.now())
         print("marking as completed in google calendar", self.get_name())
         self.main.google_calendar_manager.create_calendar_schedule(
             self.main.google_calendar_manager.get_calendar_id("marker"),
@@ -201,3 +199,22 @@ class FlexTask:
             1,
             self.get_id() + "-google-calendar-marker"
         )
+
+    # ==== metadata
+
+    def get_metadata(self, key: str):
+        if "metadata" not in self.data:
+            return None
+        if key not in self.data["metadata"]:
+            return None
+        return self.data["metadata"][key]
+
+    def set_metadata(self, key: str, value):
+        if "metadata" not in self.data:
+            self.data["metadata"] = {}
+        if value is None:
+            if key in self.data["metadata"]:
+                del self.data["metadata"][key]
+        else:
+            self.data["metadata"][key] = value
+        self.main.notion_manager.upsert_data(self.get_id(), self.data, force_push_update=True)
