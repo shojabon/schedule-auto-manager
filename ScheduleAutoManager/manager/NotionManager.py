@@ -66,6 +66,7 @@ class NotionManager:
         for task in self.get_active_tasks():
             if task.get_determined_end_date_data() != task.get_determined_end_date():
                 differing_data_tasks.append(task)
+                print(task.get_name(), task.get_determined_end_date_data(), task.get_determined_end_date())
                 continue
             calculated_end_date = calculated_end_date_map[
                 task.get_id()] if task.get_id() in calculated_end_date_map else task.get_determined_end_date()
@@ -243,8 +244,7 @@ class NotionManager:
             for batch in active_batched_tasks[project_id]:
                 last_task = batch[-1]
                 for idx, task in enumerate(batch):
-                    task.set_metadata("determinedEndDate",
-                                      last_task.get_ideal_end_date() - datetime.timedelta(minutes=len(batch) - idx))
+                    task.set_metadata("determinedEndDate", last_task.get_ideal_end_date() - datetime.timedelta(minutes=len(batch) - idx))
 
     def get_batched_active_tasks(self) -> dict[str, list[list[FlexTask]]]:
         result = {}
@@ -253,10 +253,9 @@ class NotionManager:
         for project_id in batched_tasks_by_project.keys():
             result[project_id] = []
             for batch in batched_tasks_by_project[project_id]:
-                active_batch = [task for task in batch if task.get_status() == "未完了"]
-                if len(active_batch) == 0:
+                if len([task for task in batch if task.get_status() == "未完了"]) == 0:
                     continue
-                result[project_id].append(active_batch)
+                result[project_id].append(batch)
 
         return result
 

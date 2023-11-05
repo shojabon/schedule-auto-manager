@@ -187,6 +187,8 @@ class FlexTask:
         result_date = self.get_start_date() + datetime.timedelta(minutes=duration_minutes)
         # set timezone to JST
         result_date = result_date.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        # set seconds and microseconds to 0
+        result_date = result_date.replace(second=0, microsecond=0)
         return result_date
 
     def get_completed_time(self) -> datetime.datetime | None:
