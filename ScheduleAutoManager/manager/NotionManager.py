@@ -66,13 +66,11 @@ class NotionManager:
         for task in self.get_active_tasks():
             if task.get_determined_end_date_data() != task.get_determined_end_date():
                 differing_data_tasks.append(task)
-                print("a")
                 continue
             calculated_end_date = calculated_end_date_map[
                 task.get_id()] if task.get_id() in calculated_end_date_map else task.get_determined_end_date()
             if task.get_calculated_end_date_data() != calculated_end_date:
                 differing_data_tasks.append(task)
-                print("b", task.get_calculated_end_date_data(), calculated_end_date)
                 continue
 
         for task in tqdm(differing_data_tasks, desc="Pushing score to database"):
@@ -216,26 +214,26 @@ class NotionManager:
 
     def get_calculated_end_date(self):
         result = {}
-        tasks = self.get_active_tasks()
-        tasks.reverse()
-
-        tasks.sort(key=lambda x: x.get_determined_end_date())
-
-        task_duration_completed_today = self.get_duration_of_task_completed_today()
-
-        base_date = 0
-        total_minutes = 0
-        for task in tasks:
-            offset = task_duration_completed_today if base_date == 0 else 0
-            if total_minutes > 6 * 60 - offset:
-                base_date += 1
-                total_minutes = 0
-            total_minutes += task.get_duration()
-            result[task.get_id()] = datetime.datetime.today() + datetime.timedelta(days=base_date)
-            # set timezone to JST
-            result[task.get_id()] = result[task.get_id()].astimezone(tz=datetime.timezone(datetime.timedelta(hours=9)))
-            # set time to 0:00
-            result[task.get_id()] = result[task.get_id()].replace(hour=0, minute=0, second=0, microsecond=0)
+        # tasks = self.get_active_tasks()
+        # tasks.reverse()
+        #
+        # tasks.sort(key=lambda x: x.get_determined_end_date())
+        #
+        # task_duration_completed_today = self.get_duration_of_task_completed_today()
+        #
+        # base_date = 0
+        # total_minutes = 0
+        # for task in tasks:
+        #     offset = task_duration_completed_today if base_date == 0 else 0
+        #     if total_minutes > 6 * 60 - offset:
+        #         base_date += 1
+        #         total_minutes = 0
+        #     total_minutes += task.get_duration()
+        #     result[task.get_id()] = datetime.datetime.today() + datetime.timedelta(days=base_date)
+        #     # set timezone to JST
+        #     result[task.get_id()] = result[task.get_id()].astimezone(tz=datetime.timezone(datetime.timedelta(hours=9)))
+        #     # set time to 0:00
+        #     result[task.get_id()] = result[task.get_id()].replace(hour=0, minute=0, second=0, microsecond=0)
 
         return result
 
