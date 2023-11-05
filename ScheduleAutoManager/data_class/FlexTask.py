@@ -24,7 +24,7 @@ class FlexTask:
 
     def get_calculated_end_date_data(self):
         try:
-            data =  self.data["properties"]["計算終わり日"]["date"]["start"]
+            data = self.data["properties"]["計算終わり日"]["date"]["start"]
             # convert to datetime
             result = datetime.datetime.fromisoformat(data)
             # if no timezone info, assume JST
@@ -80,7 +80,7 @@ class FlexTask:
     def get_duration(self):
         duration = self.data["properties"]["タスク時間"]["number"]
         if duration is None:
-            return 60
+            return 30
         return duration
 
     def get_insurance_rate(self):
@@ -172,12 +172,25 @@ class FlexTask:
         return score
 
     def get_determined_end_date(self) -> datetime.datetime | None:
+        result = self.get_metadata("determinedEndDate")
+        # set timezone to JST
+        if result is not None:
+            result = result.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        return result
+
+    def get_ideal_end_date(self) -> datetime.datetime | None:
         if self.get_end_date() is None:
             return None
         duration_minutes = (self.get_end_date() - self.get_start_date()).total_seconds() / 60
         duration_minutes = duration_minutes * self.get_insurance_rate()
         duration_minutes = duration_minutes * ((self.get_project_tasks_index() + 1)/self.get_project_tasks_count())
-        return self.get_start_date() + datetime.timedelta(minutes=duration_minutes)
+        result_date = self.get_start_date() + datetime.timedelta(minutes=duration_minutes)
+        # set timezone to JST
+        result_date = result_date.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        return result_date
+
+    def get_completed_time(self) -> datetime.datetime | None:
+        return self.get_metadata("completedTime")
 
 
     def mark_as_completed_in_google_calendar(self):

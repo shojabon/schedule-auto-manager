@@ -24,6 +24,7 @@ class ScheduleAutoManager:
                 })
                 self.notion_manager.update_database()
                 self.notion_manager.delete_unnecessary_tasks()
+                self.notion_manager.push_determined_end_date()
                 self.notion_manager.push_score_to_database()
                 self.google_calendar_manager.update_all_databases()
 
@@ -51,7 +52,6 @@ class ScheduleAutoManager:
         # start execute every minute thread
         self.execute_minute_thread = Thread(target=self.execute_every_minute)
         self.execute_minute_thread.start()
-
 
 
         # #

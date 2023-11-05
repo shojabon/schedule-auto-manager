@@ -58,49 +58,6 @@ class NotionManager:
 
         return True
 
-    def get_calculated_end_date(self):
-        tasks_in_range = []
-        for task in self.get_active_tasks():
-            # if task.get_determined_end_date() is in the past including today:
-            if task.get_determined_end_date().date() > datetime.datetime.now().date():
-                continue
-            tasks_in_range.append(task)
-        tasks_in_range.reverse()
-
-        project_split_tasks: [str, FlexTask] = {}
-
-        for task in tasks_in_range:
-            project_name = task.get_project_name()
-            if project_name not in project_split_tasks:
-                project_split_tasks[project_name] = []
-            project_split_tasks[project_name].append(task)
-
-        batched_tasks = []
-
-        for project_name, tasks in project_split_tasks.items():
-            reversed_tasks = tasks
-            reversed_tasks.reverse()
-            # batch by 3 tasks
-            for i in range(0, len(reversed_tasks), 3):
-                batched = reversed_tasks[i:i + 3]
-                batched.reverse()
-                # get the first task's end date
-                average_end_date = batched[0].get_determined_end_date().timestamp()
-                batched_tasks.append((batched, average_end_date))
-
-        batched_tasks.sort(key=lambda x: x[1])
-        result = {}
-
-        for batched, average_end_date in batched_tasks:
-            # print name and end date
-            for idx, task in enumerate(batched):
-                result[task.get_id()] = datetime.datetime.fromtimestamp(average_end_date + idx * 60)
-                # set time zone to JST
-                result[task.get_id()] = result[task.get_id()].astimezone(
-                    tz=datetime.timezone(datetime.timedelta(hours=9)))
-
-        return result
-
     def push_score_to_database(self):
 
         calculated_end_date_map = self.get_calculated_end_date()
@@ -109,11 +66,13 @@ class NotionManager:
         for task in self.get_active_tasks():
             if task.get_determined_end_date_data() != task.get_determined_end_date():
                 differing_data_tasks.append(task)
+                print("a")
                 continue
             calculated_end_date = calculated_end_date_map[
                 task.get_id()] if task.get_id() in calculated_end_date_map else task.get_determined_end_date()
             if task.get_calculated_end_date_data() != calculated_end_date:
                 differing_data_tasks.append(task)
+                print("b", task.get_calculated_end_date_data(), calculated_end_date)
                 continue
 
         for task in tqdm(differing_data_tasks, desc="Pushing score to database"):
@@ -236,7 +195,110 @@ class NotionManager:
             if task.get_date_data() is None:
                 continue
             now = datetime.datetime.now(task.get_start_date().astimezone().tzinfo)
-            if not (task.get_start_date() <= now <= task.get_end_date()):
+            if not (task.get_start_date() <= now):
                 continue
             tasks.append(task)
         return tasks
+
+    # ======== Task Batching ========
+
+    def get_duration_of_task_completed_today(self):
+        tasks = self.get_all_tasks()
+        total_duration = 0
+        for task in tasks:
+            completed_time = task.get_completed_time()
+            if completed_time is None:
+                continue
+            if completed_time.date() != datetime.datetime.now().date():
+                continue
+            total_duration += task.get_duration()
+        return total_duration
+
+    def get_calculated_end_date(self):
+        result = {}
+        tasks = self.get_active_tasks()
+        tasks.reverse()
+
+        tasks.sort(key=lambda x: x.get_determined_end_date())
+
+        task_duration_completed_today = self.get_duration_of_task_completed_today()
+
+        base_date = 0
+        total_minutes = 0
+        for task in tasks:
+            total_minutes += task.get_duration()
+            result[task.get_id()] = datetime.datetime.today() + datetime.timedelta(days=base_date)
+            # set timezone to JST
+            result[task.get_id()] = result[task.get_id()].astimezone(tz=datetime.timezone(datetime.timedelta(hours=9)))
+            # set time to 0:00
+            result[task.get_id()] = result[task.get_id()].replace(hour=0, minute=0, second=0, microsecond=0)
+
+            offset = task_duration_completed_today if base_date == 0 else 0
+
+            if total_minutes > 6 * 60 - offset:
+                base_date += 1
+                total_minutes = 0
+
+        return result
+
+    def push_determined_end_date(self):
+        active_batched_tasks = self.get_batched_active_tasks()
+        for project_id in active_batched_tasks.keys():
+            for batch in active_batched_tasks[project_id]:
+                last_task = batch[-1]
+                for idx, task in enumerate(batch):
+                    task.set_metadata("determinedEndDate",
+                                      last_task.get_ideal_end_date() - datetime.timedelta(minutes=len(batch) - idx))
+
+    def get_batched_active_tasks(self) -> dict[str, list[list[FlexTask]]]:
+        result = {}
+
+        batched_tasks_by_project = self.get_batched_tasks_by_project()
+        for project_id in batched_tasks_by_project.keys():
+            result[project_id] = []
+            for batch in batched_tasks_by_project[project_id]:
+                active_batch = [task for task in batch if task.get_status() == "未完了"]
+                if len(active_batch) == 0:
+                    continue
+                result[project_id].append(active_batch)
+
+        return result
+
+    def get_batched_tasks_by_project(self):
+        result = {}
+
+        project_tasks = self.get_tasks_by_project()
+
+        for project_id in project_tasks.keys():
+            project_id = str(project_id)
+            result[project_id] = []
+            tasks = project_tasks[project_id]
+
+            batch = []
+
+            def batch_total_duration():
+                return sum([task.get_duration() for task in batch])
+
+            for task in tasks:
+                batch.append(task)
+                if batch_total_duration() >= 90:
+                    result[project_id].append(batch)
+                    batch = []
+
+            if len(batch) > 0:
+                result[project_id].append(batch)
+
+        return result
+
+    def get_tasks_by_project(self):
+        result = {}
+
+        for task in self.get_active_tasks():
+            if task.get_end_date() is None:
+                continue
+            project_tasks = task.get_project_tasks()
+            first_task_id = project_tasks[0]
+            if first_task_id not in result:
+                result[first_task_id] = [self.get_task(task_id) for task_id in project_tasks]
+
+        return result
