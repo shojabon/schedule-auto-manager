@@ -226,18 +226,16 @@ class NotionManager:
         base_date = 0
         total_minutes = 0
         for task in tasks:
+            offset = task_duration_completed_today if base_date == 0 else 0
+            if total_minutes > 6 * 60 - offset:
+                base_date += 1
+                total_minutes = 0
             total_minutes += task.get_duration()
             result[task.get_id()] = datetime.datetime.today() + datetime.timedelta(days=base_date)
             # set timezone to JST
             result[task.get_id()] = result[task.get_id()].astimezone(tz=datetime.timezone(datetime.timedelta(hours=9)))
             # set time to 0:00
             result[task.get_id()] = result[task.get_id()].replace(hour=0, minute=0, second=0, microsecond=0)
-
-            offset = task_duration_completed_today if base_date == 0 else 0
-
-            if total_minutes > 6 * 60 - offset:
-                base_date += 1
-                total_minutes = 0
 
         return result
 
